@@ -17,8 +17,11 @@ class WeixinMiddleware(object):
         createtime = int(xml.find('./CreateTime').text)
         createtime = datetime.datetime.fromtimestamp(createtime)
         msgtype = xml.find('./MsgType').text
+        
         if msgtype == 'text':
             content = xml.find('./Content').text
+            content = content.lower()
+            content = content.strip()
             msg = Msg.objects.create(msg_type=msgtype, to_user=tousername, from_user=fromusername,
                                 created_at_from_wx=createtime, content=content)
             request.msg = msg

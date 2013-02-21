@@ -3,14 +3,21 @@ import time
 from django.db import models
 
 IMAGE_DIR = 'upload/image'
+MUSIC_DIR = 'upload/music'
 def upload_to(instance, filename):
     filename = filename.encode('u8')
     fn = '.'.join([str(time.time()), filename.split('.')[-1]])
     return '%s/%s'%(IMAGE_DIR, fn)
 
+def upload_to2(instance, filename):
+    filename = filename.encode('u8')
+    fn = '.'.join([str(time.time()), filename.split('.')[-1]])
+    return '%s/%s'%(MUSIC_DIR, fn)
+    
 rule_type_choices = (
     ('text', u'文本'),
     ('news', u'图文news'),
+    ('music', u'声音'),
 )
 funcflag_choices = (
     ('0', u'default'),
@@ -26,10 +33,10 @@ class Rule(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     funcflag = models.CharField(max_length=5, choices=funcflag_choices, default='0')
 
-    content = models.TextField(blank=True)
+    content = models.TextField(blank=True, default='')
 
     def __unicode__(self):
-        if self.rule_type == 'text':
+        if self.rule_type in ['text', 'music']:
             return u'%s_%i(%s ...)'%(self.get_rule_type_display(), self.id, self.content[:25])
         if self.rule_type == 'news':
             if self.article_set.count() > 0:
@@ -53,6 +60,7 @@ class Rule(models.Model):
             msgtype.text = etree.CDATA('text')
             content = etree.SubElement(r, 'Content')
             content.text = etree.CDATA(self.content)
+        
         if self.rule_type == 'news':
             msgtype.text = etree.CDATA('news')
             content = etree.SubElement(r, 'Content')
@@ -64,13 +72,27 @@ class Rule(models.Model):
                 item = etree.SubElement(articles, 'item')
                 title = etree.SubElement(item, 'Title')
                 title.text = etree.CDATA(a.title)
-                desp =  etree.SubElement(item, 'Discription')
+                desp =  etree.SubElement(item, 'Description')
                 desp.text = etree.CDATA(a.desp)
                 picurl = etree.SubElement(item, 'PicUrl')
                 picurl.text = etree.CDATA(a.imgurl())
                 url = etree.SubElement(item, 'Url')
                 url.text = etree.CDATA(a.url)
 
+        if self.rule_type == 'music':
+            m = self.music_set.all()[0]
+            msgtype.text = etree.CDATA('music')
+            
+            music = etree.SubElement(r, 'Music')
+            title = etree.SubElement(music, 'Title')
+            title.text = etree.CDATA(m.title)
+            desp =  etree.SubElement(music, 'Description')
+            desp.text = etree.CDATA(m.desp)
+            musicurl = etree.SubElement(music, 'MusicUrl')
+            musicurl.text = etree.CDATA(m.mfileurl())
+            hqmusicurl = etree.SubElement(music, 'HQMusicUrl')
+            hqmusicurl.text = etree.CDATA(m.hqmfileurl())
+        
         funcflag_ = etree.SubElement(r, 'FuncFlag')
         funcflag_.text = etree.CDATA(funcflag)
         xml = etree.tostring(r, encoding='utf-8', pretty_print=pretty_print)
@@ -97,6 +119,33 @@ class Article(models.Model):
         from django.conf import settings
         return 'http://'+ settings.HOST + self.image.url
 
+class Music(models.Model):
+    class Meta:
+        verbose_name = u'声音回复'
+        verbose_name_plural = verbose_name
+        app_label = 'weixin'
+
+    rule = models.ForeignKey(Rule)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    title = models.CharField(max_length=400)
+    desp = models.TextField(blank=True)
+    mfile = models.FileField(upload_to=upload_to2, blank=True, null=True)
+    hqmfile = models.FileField(upload_to=upload_to2, blank=True, null=True)
+
+    def __unicode__(self):
+        return self.title
+
+    def mfileurl(self):
+        from django.conf import settings
+        return 'http://'+ settings.HOST + self.mfile.url
+
+    def hqmfileurl(self):
+        if not self.hqmfile:
+            return ''
+        from django.conf import settings
+        return 'http://'+ settings.HOST + self.hqmfile.url
+
 class Keyword(models.Model):
     class Meta:
         verbose_name = u'关键词匹配'
@@ -112,3 +161,7 @@ class Keyword(models.Model):
 
     def __unicode__(self):
         return u'%s(%s)'%(self.content, self.priority)
+
+    def save(self):
+        self.content = self.content.lower()
+        super(Keyword, self).save()

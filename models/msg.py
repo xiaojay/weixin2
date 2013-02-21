@@ -35,20 +35,3 @@ class Msg(models.Model):
             else:
                 return u'%s:(%s, %s)'%(self.get_msg_type_display(),
                                         self.latitude, self.longitude)
-
-class Chat(models):
-    class Meta:
-        verbose_name = u'simi对话记录'
-        verbose_name_plural = verbose_name
-        app_label = 'weixin'
-
-    user = models.CharField(max_length=50)
-    created_at = models.DateTimeField(auto_now_add=True)
-    query = models.CharField(max_length=400, null=True)
-    resp = models.CharField(max_length=400, blank=True)
-
-    def __unicode__(self):
-        return self.query
-
-
-

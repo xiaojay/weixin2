@@ -5,9 +5,13 @@ from models import *
 class ArticleInline(admin.StackedInline):
     model = Article
 
+class MusicInline(admin.StackedInline):
+    model = Music
+
 class RuleAdmin(admin.ModelAdmin):
     inlines = [
         ArticleInline,
+        MusicInline,
     ]
     search_fields = ['content']
     list_filter = ['rule_type']
@@ -20,7 +24,5 @@ admin.site.register(Rule, RuleAdmin)
 admin.site.register(Keyword, KeywordAdmin)
 
 admin.site.register(Msg)
-admin.site.register(Chat)
-
-
-
+admin.site.register(Simichat)
+#admin.site.register(Music)

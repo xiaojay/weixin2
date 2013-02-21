@@ -1,7 +1,7 @@
 #coding=utf-8
 import time
 from lxml import etree
-from models import Keyword, Chat
+from models import *
 
 def produce_text_resp(from_, to_, resp, funcflag='0', pretty_print=False):
     r = etree.Element('xml')
@@ -52,8 +52,8 @@ def produce_news_resp(from_, to_, resp, funcflag='0', pretty_print=False):
     xml = etree.tostring(r, encoding='utf-8', pretty_print=pretty_print)
     return xml
 
-def get_rule_by_keyword(msg):
-    content = msg.content.lower().strip()
+def get_rule_by_keyword(query):
+    content = query.lower().strip()
     keywords = Keyword.objects.filter(is_enabled=True).filter(is_strict=True).filter(content=content).\
                 order_by('-priority').all()
     if keywords:
@@ -68,9 +68,7 @@ def get_rule_by_keyword(msg):
             return rule
     return None
 
-def get_default_rule(msg):
+def get_default_rule():
     keyword = Keyword.objects.get(content='default')
     rule = keyword.rule.order_by('?')[0]
     return rule
-
-
